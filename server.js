@@ -113,7 +113,7 @@ const viewAllEmployees = () => {
 };
 
 //add department function
-addDepartments = () => {
+addDepartment = () => {
     inquirer.prompt([
         {
             type: "input",
@@ -126,6 +126,7 @@ addDepartments = () => {
             connect.query(mysql, answer.name, (err, result) => {
                 if (err) throw err;
                 console.log('Added' + answer.name + 'to departments');
+                viewAllDepartments();
             });
         });
 }
@@ -160,9 +161,10 @@ addRole = () => {
                     }
                 ])
                     .then((departments_constChoice) => {
-                        const department_const = departments_constChoice.departments_const;
-                        params.push(department_const);
+                        const department_id = departments_constChoice.department_const;
+                        params.push(department_id);
                         const mysql = `INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)`;
+                        console.log(mysql, params)
                         connect.query(mysql, params, (err, result) => {
                             if (err) throw err;
                             console.log('Added' + answer.roles + 'to roles');
@@ -188,7 +190,7 @@ addEmployee = () => {
     ])
         .then((answer) => {
             const params = [answer.first_name, answer.last_name];
-            const roles_const = `SELECT roles.id, roles.title FROM roles`;
+            const roles_const = `SELECT role.id, role.title FROM role`;
 
             connect.query(roles_const, (err, data) => {
                 if (err) throw err;
@@ -196,15 +198,21 @@ addEmployee = () => {
                 inquirer.prompt([
                     {
                         type: "list",
-                        name: 'roles',
+                        name: 'role',
                         message: "What is the employee's role?",
                         choices: roles
                     }   
                 ])
-                    .then((rolesChoice) => {
+                    .then(rolesChoice => {
                         const roles = rolesChoice.roles;
                         params.push(roles);
+                        const sql = `INSERT INTO employee (first_name, last_name, role_id) VALUES (?,?,?)`;
+
+                        connect.query(sql, params, (err, data) => {
+                        if (err) throw err;
+                        console.log("Employee added successfully.");
                         viewAllEmployees();
+                        });
                     });
             });
         });
@@ -215,6 +223,7 @@ updateEmployeeRole = () => {
     const employeesql = `SELECT * FROM employee`;
 
     connect.query(employeesql, (err, data) => {
+        if (err) throw err;
         const employees = data.map(({ id, first_name, last_name }) => ({ name: first_name + " " + last_name, value: id }));
         inquirer.prompt([
             {
@@ -226,8 +235,6 @@ updateEmployeeRole = () => {
         ])
             .then((answer) => {
                 const employee = answer.employee;
-                const params = [];
-                params.push(employee);
                 const rolesql = `SELECT * FROM role`;
 
                 connect.query(rolesql, (err, data) => {
@@ -239,22 +246,32 @@ updateEmployeeRole = () => {
                             name: "role",
                             message: "What is the employee's new role?",
                             choices: roles
-                        }   
+                        }
                     ])
                         .then((rolesChoice) => {
                             const role = rolesChoice.role;
-                            params.push(role);
-                            let employee =  params[0];
-                            params[0] = role;
-                            params[1] = employee;
-                            const mysql = `UPDATE employee SET role_id = ? WHERE id = ?`;
+                            const employeesql = `SELECT * FROM employee`;
 
-                            connect.query(mysql, params, (err, result) => {
+                            connect.query(employeesql, (err, data) => {
                                 if (err) throw err;
-                                console.log('Updated employee role');
-                                viewAllEmployees();
-                            }
-                            );
+                                const employees = data.map(({ id, first_name, last_name }) => ({ name: first_name + " " + last_name, value: id }));
+                                const managerChoices = employees.concat([{ name: "None", value: null }]);
+                                inquirer.prompt([
+                                    {
+                                        type: "list",
+                                        name: "manager",
+                                        message: "Who is the employee's new manager?",
+                                        choices: managerChoices
+                                    }
+                                ])
+                                    .then((managerChoice) => {
+                                        const manager = managerChoice.manager;
+                                        connect.query(`UPDATE employee SET role_id = ?, manager_id = ? WHERE id = ?`, [role, manager, employee], (err, result) => {
+                                            if (err) throw err;
+                                            viewAllEmployees();
+                                        });
+                                    });
+                            });
                         });
                 });
             });
