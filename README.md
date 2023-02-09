@@ -1,4 +1,7 @@
 # Team Tracker
+![team tracker](https://user-images.githubusercontent.com/114833466/217916111-8fd7b43d-98d2-427f-b0a9-d04750abad2d.jpg)
+video example;
+https://drive.google.com/file/d/1mRGo8N_6qFvVVDl6E-0x1JVUqELUaCUa/view
   ## Table of Contents 
   - [Description](#description)
   - [Installation](#installation)
